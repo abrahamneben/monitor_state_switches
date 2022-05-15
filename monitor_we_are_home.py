@@ -42,6 +42,8 @@ trusted_devices = json.loads(open(trusted_mac_addresses_filename, 'r').read())
 # seen on the network.
 last_seen_times = {mac_addr: datetime(1970,1,1,1,1,1) for mac_addr in trusted_devices.keys()}
 
+log('Beginning monitoring')
+
 while True:
 
   # Load all connected MAC addresses
@@ -53,6 +55,9 @@ while True:
   for mac_addr in connected_mac_addresses:
     if mac_addr in trusted_devices:
       last_seen_times[mac_addr] = datetime.now()
+
+  if verbose_logging:
+    log(json.dumps(last_seen_times, default=str) + '\n')
 
   # Calculate when any trusted device was last seen
   mins_since_trusted_device_seen = min(
