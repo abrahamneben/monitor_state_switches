@@ -33,7 +33,7 @@ In the Home app, tap Automation, and add the below 4 automations.
  1. When your lock locks, set `we_are_home` to Off.
  2. When your lock unlocks, set `we_are_home` to One.
  3. When `we_are_home` turns On, set lock to unlocked.
- 4. When `we_are_home turns Off, set lock to locked.
+ 4. When `we_are_home` turns Off, set lock to locked.
 
 You can set up each of these by tapping `+` in the Automation tab, then tap `An Accessory is Controlled`, then tap the device whose change you want to trigger on. Then tap Next, and tap the type of state change (eg, Turns On, Turns Off, Locks, or Unlocks). Then tap Next, and tap the device whose state you want to change, then set its state to whan you want it to change to. Then tap Done.
 
