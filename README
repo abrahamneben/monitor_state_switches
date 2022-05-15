@@ -44,7 +44,7 @@ Strangely, Homekit does not require user confirmation when triggering lock/unloc
 SSH to the raspberry pi and clone this repo.
 
 ```
-git clone https://github.com/abrahamneben/we_are_home.git
+git clone git@github.com:abrahamneben/we_are_home.git
 ```
 
 Create a `homebridge_config.json` file from the provided template `homebridge_config_TEMPLATE.json`. `host` is the IP address os the raspberry pi, `port` and `pin` are given in the Config tab of the Homebridge browser interface.
