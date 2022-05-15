@@ -1,0 +1,8 @@
+  File "/home/aneben/we_are_home/./monitor_we_are_home.py", line 28
+    auth=homebridge_config["homebridge_setup_code"])
+        ^
+SyntaxError: positional argument follows keyword argument
+  File "/home/aneben/we_are_home/./monitor_we_are_home.py", line 28
+    auth=homebridge_config["homebridge_setup_code"])
+        ^
+SyntaxError: positional argument follows keyword argument
