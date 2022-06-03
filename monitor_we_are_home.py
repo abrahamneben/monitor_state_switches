@@ -61,9 +61,6 @@ while True:
     if mac_addr in trusted_devices:
       last_seen_times[mac_addr] = datetime.now()
 
-  if verbose_logging:
-    log(json.dumps(last_seen_times, default=str) + '\n')
-
   # Calculate when any trusted device was last seen
   mins_since_trusted_device_seen = min(
     (datetime.now()-t).total_seconds() / 60.
