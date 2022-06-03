@@ -22,10 +22,15 @@ we_are_home_set_time = datetime.now()
 homebridge_config = json.loads(open(homebridge_config_filename, 'r').read())
 def connect_to_homebridge():
   """Return handle to homebridge instance."""
-  return HomeBridgeController(
-    host=homebridge_config["host"],
-    port=homebridge_config["port"],
-    auth=homebridge_config["pin"])
+  try:
+    return HomeBridgeController(
+      host=homebridge_config["host"],
+      port=homebridge_config["port"],
+      auth=homebridge_config["pin"])
+  except Exception as e:
+    log(f'Failed to connect to homebridge with error \n{e}')
+    time.sleep(sleep_time_sec)
+    return connect_to_homebridge()
 
 def log(message):
   with open(log_filename, 'a') as f:
