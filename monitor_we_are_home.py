@@ -10,8 +10,8 @@ import json
 import time
 
 verbose_logging = True
-sleep_time_sec = 10
-idle_timeout_mins = 2
+sleep_time_sec = 15
+idle_timeout_mins = 5
 log_filename = 'we_are_home.log'
 trusted_mac_addresses_filename = "trusted_mac_addresses.json"
 homebridge_config_filename = "homebridge_config.json"
