@@ -14,19 +14,19 @@ sleep_time_sec = 15
 idle_timeout_mins = 5
 log_filename = 'we_are_home.log'
 trusted_mac_addresses_filename = "trusted_mac_addresses.json"
-homebridge_config_filename = "homebridge_config.json"
+homebridge_connection_filename = "homebridge_connection.json"
 
 prev_we_are_home = None
 we_are_home_set_time = datetime.now()
 
-homebridge_config = json.loads(open(homebridge_config_filename, 'r').read())
+homebridge_connection = json.loads(open(homebridge_connection_filename, 'r').read())
 def connect_to_homebridge():
   """Return handle to homebridge instance."""
   try:
     return HomeBridgeController(
-      host=homebridge_config["host"],
-      port=homebridge_config["port"],
-      auth=homebridge_config["pin"])
+      host=homebridge_connection["host"],
+      port=homebridge_connection["port"],
+      auth=homebridge_connection["pin"])
   except Exception as e:
     log(f'Failed to connect to homebridge with error \n{e}')
     time.sleep(sleep_time_sec)
@@ -47,7 +47,7 @@ trusted_devices = json.loads(open(trusted_mac_addresses_filename, 'r').read())
 # seen on the network.
 last_seen_times = {mac_addr: datetime(1970,1,1,1,1,1) for mac_addr in trusted_devices.keys()}
 
-log('Beginning monitoring')
+log('Beginning monitoring\n')
 
 while True:
 

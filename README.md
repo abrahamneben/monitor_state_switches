@@ -47,7 +47,7 @@ SSH to the raspberry pi and clone this repo.
 git clone git@github.com:abrahamneben/we_are_home.git
 ```
 
-Create a `homebridge_config.json` file from the provided template `homebridge_config_TEMPLATE.json`. `host` is the IP address os the raspberry pi, `port` and `pin` are given in the Config tab of the Homebridge browser interface.
+Create a `homebridge_connection.json` file from the provided template `homebridge_config_TEMPLATE.json`. `host` is the IP address os the raspberry pi, `port` and `pin` are given in the Config tab of the Homebridge browser interface.
 
 Create a `trusted_mac_addresses.json` file from the provided template `trusted_mac_addresses_TEMPLATE.json`, containing the Wi-Fi MAC addresses of your trusted devices. I used my and my partner's iphones. These days, iOS creates a unique, random MAC address for every Wi-Fi network. This is found by tapping Wi-Fi in Settings, then tapping the (i) next to the current network.
 
