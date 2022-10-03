@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# monitor_we_are_home.py 
+# monitor_state_switches.py 
 # 
 
 from subprocess import check_output
@@ -12,12 +12,12 @@ import time
 verbose_logging = True
 sleep_time_sec = 15
 idle_timeout_mins = 5
-log_filename = 'we_are_home.log'
+log_filename = 'monitor_state_switches.log'
 trusted_mac_addresses_filename = "trusted_mac_addresses.json"
 homebridge_connection_filename = "homebridge_connection.json"
 
-prev_we_are_home = None
-we_are_home_set_time = datetime.now()
+prev_kitchen_lock = None
+kitchen_lock_set_time = datetime.now()
 
 homebridge_connection = json.loads(open(homebridge_connection_filename, 'r').read())
 def connect_to_homebridge():
@@ -35,7 +35,7 @@ def connect_to_homebridge():
 def log(message):
   with open(log_filename, 'a') as f:
     date_str = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
-    f.write(f'{date_str} : {message}')
+    f.write(f'{date_str} : {message}\n')
 
 def is_daytime():
   return 7 <= datetime.now().hour < 21
@@ -47,7 +47,7 @@ trusted_devices = json.loads(open(trusted_mac_addresses_filename, 'r').read())
 # seen on the network.
 last_seen_times = {mac_addr: datetime(1970,1,1,1,1,1) for mac_addr in trusted_devices.keys()}
 
-log('Beginning monitoring\n')
+log('Beginning monitoring')
 
 while True:
 
@@ -71,43 +71,50 @@ while True:
   # to devices made outside of this script.)
   controller = connect_to_homebridge()
   we_are_home = bool(controller.get_value('we_are_home'))
+  kitchen_lock = bool(controller.get_value('kitchen_lock'))
 
-  # Calculate hov long we_are_home has been in its preset state.
-  if we_are_home != prev_we_are_home:
+  ## Update we_are_home
+  log(f'[we_are_home] Setting to {we_are_home}')
+  controller.set_value('we_are_home', mins_since_trusted_device_seen < idle_timeout_mins)
+
+  ## Update kitchen_lock
+
+  # Calculate how long we_are_home has been in its preset state.
+  if kitchen_lock != prev_kitchen_lock:
     we_are_home_set_time = datetime.now()
     prev_we_are_home = we_are_home
-  mins_set = (datetime.now() - we_are_home_set_time).total_seconds() / 60.
+  mins_set = (datetime.now() - kitchen_lock_set_time).total_seconds() / 60.
 
-  # During the day, set we_are_home to True as long as a trusted device is on the network. If it
-  # disconnects, then set we_are_home to False after a timeout.
+  # During the day, set kitchen_lock to True as long as a trusted device is on the network. If it
+  # disconnects, then set kitchen_lock to False after a timeout.
   if is_daytime():
-    if we_are_home:  # currently unlocked
+    if kitchen_lock:  # currently unlocked
       if mins_since_trusted_device_seen > idle_timeout_mins:
 
-        log(f'[Daytime] Locking b/c trusted device not seen for {mins_since_trusted_device_seen:.2f} min, exceeds {idle_timeout_mins} min timeout\n')
-        controller.set_value('we_are_home', False)
+        log(f'[kitchen_lock] [Daytime] Locking b/c trusted device not seen for {mins_since_trusted_device_seen:.2f} min, exceeds {idle_timeout_mins} min timeout')
+        controller.set_value('kitchen_lock', False)
 
       elif verbose_logging:
-        log(f'[Daytime] No action. Currently unlocked. Last trusted device seen {mins_since_trusted_device_seen:.2f} min ago, within {idle_timeout_mins} min timeout.\n')
-    elif not we_are_home:  # currently locked
+        log(f'[kitchen_lock] [Daytime] No action. Currently unlocked. Last trusted device seen {mins_since_trusted_device_seen:.2f} min ago, within {idle_timeout_mins} min timeout.')
+    elif not kitchen_lock:  # currently locked
       if mins_since_trusted_device_seen < idle_timeout_mins:
 
-        log(f'[Daytime] Unlocking b/c trusted device seen {mins_since_trusted_device_seen:.2f} min ago, within {idle_timeout_mins} min timeout\n')
-        controller.set_value('we_are_home', True)
+        log(f'[kitchen_lock] [Daytime] Unlocking b/c trusted device seen {mins_since_trusted_device_seen:.2f} min ago, within {idle_timeout_mins} min timeout')
+        controller.set_value('kitchen_lock', True)
     
       elif verbose_logging:
-        log(f'[Daytime] No action. Currently locked. Last trusted device seen {mins_since_trusted_device_seen:.2f} min ago, exceeds {idle_timeout_mins} min timeout.\n')
+        log(f'[kitchen_lock][Daytime] No action. Currently locked. Last trusted device seen {mins_since_trusted_device_seen:.2f} min ago, exceeds {idle_timeout_mins} min timeout.')
 
   # At night, set we_are_home to False. If it is manually changed outside this script, then 
   # re-set it to false after a timeout.
   elif not is_daytime():  # Nighttime
-    if we_are_home:  # currently unlocked
+    if kitchen_lock:  # currently unlocked
       if mins_set > idle_timeout_mins:
-        log(f'[Nighttime] Locking b/c we_are_home has been True for {mins_set:.2f} min, exceeds {idle_timeout_mins} min timeout\n')
-        controller.set_value('we_are_home', False)
+        log(f'[kitchen_lock] [Nighttime] Locking b/c kitchen_lock has been True for {mins_set:.2f} min, exceeds {idle_timeout_mins} min timeout')
+        controller.set_value('kitchen_lock', False)
       elif verbose_logging:
-        log(f'[Nighttime] No action. Currently unlocked for {mins_set:.2f} min, within {idle_timeout_mins} min timeout\n')
+        log(f'[kitchen_lock] [Nighttime] No action. Currently unlocked for {mins_set:.2f} min, within {idle_timeout_mins} min timeout')
     elif verbose_logging:
-      log(f'[Nighttime] No action. Currently locked.\n')
+      log(f'[kitchen_lock] [Nighttime] No action. Currently locked.\n')
 
   time.sleep(sleep_time_sec)

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-nohup ./monitor_we_are_home.py &
+nohup ./monitor_state_switches.py &

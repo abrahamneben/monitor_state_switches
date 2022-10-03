@@ -1,4 +1,4 @@
-# we_are_home
+# monitor_state_switches
 ## tl;dr
 Lock or unlock your bluetooth smart lock based on time of day and whether your phone is connected to your home network.
 
