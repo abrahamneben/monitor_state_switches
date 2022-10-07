@@ -79,42 +79,25 @@ while True:
 
   ## Update kitchen_lock
 
-  # Calculate how long we_are_home has been in its preset state.
+  # Calculate how long kitchen lock has been set.
   if kitchen_lock != prev_kitchen_lock:
-    we_are_home_set_time = datetime.now()
-    prev_we_are_home = we_are_home
+    kitchen_lock_set_time = datetime.now()
   mins_set = (datetime.now() - kitchen_lock_set_time).total_seconds() / 60.
 
   # During the day, set kitchen_lock to True as long as a trusted device is on the network. If it
   # disconnects, then set kitchen_lock to False after a timeout.
   if is_daytime():
-    if kitchen_lock:  # currently unlocked
-      if mins_since_trusted_device_seen > idle_timeout_mins:
-
-        log(f'[kitchen_lock] [Daytime] Locking b/c trusted device not seen for {mins_since_trusted_device_seen:.2f} min, exceeds {idle_timeout_mins} min timeout')
-        controller.set_value('kitchen_lock', False)
-
-      elif verbose_logging:
-        log(f'[kitchen_lock] [Daytime] No action. Currently unlocked. Last trusted device seen {mins_since_trusted_device_seen:.2f} min ago, within {idle_timeout_mins} min timeout.')
-    elif not kitchen_lock:  # currently locked
-      if mins_since_trusted_device_seen < idle_timeout_mins:
-
-        log(f'[kitchen_lock] [Daytime] Unlocking b/c trusted device seen {mins_since_trusted_device_seen:.2f} min ago, within {idle_timeout_mins} min timeout')
-        controller.set_value('kitchen_lock', True)
-    
-      elif verbose_logging:
-        log(f'[kitchen_lock][Daytime] No action. Currently locked. Last trusted device seen {mins_since_trusted_device_seen:.2f} min ago, exceeds {idle_timeout_mins} min timeout.')
+    log(f'[kitchen_lock] Daytime. Setting to {mins_since_trusted_device_seen < idle_timeout_mins}, trusted device last seen for {mins_since_trusted_device_seen:.2f} min ago')
+    controller.set_value('kitchen_lock', mins_since_trusted_device_seen < idle_timeout_mins)
 
   # At night, set we_are_home to False. If it is manually changed outside this script, then 
   # re-set it to false after a timeout.
   elif not is_daytime():  # Nighttime
-    if kitchen_lock:  # currently unlocked
-      if mins_set > idle_timeout_mins:
-        log(f'[kitchen_lock] [Nighttime] Locking b/c kitchen_lock has been True for {mins_set:.2f} min, exceeds {idle_timeout_mins} min timeout')
-        controller.set_value('kitchen_lock', False)
-      elif verbose_logging:
-        log(f'[kitchen_lock] [Nighttime] No action. Currently unlocked for {mins_set:.2f} min, within {idle_timeout_mins} min timeout')
-    elif verbose_logging:
-      log(f'[kitchen_lock] [Nighttime] No action. Currently locked.\n')
+    should_unlock = mins_set < idle_timeout_mins if kitchen_lock else False
+    log(f'[kitchen_lock] Nighttime. Setting to {should_unlock} because currently {kitchen_lock} and has been set for {mins_set:.2f} mins.')
+    controller.set_value('kitchen_lock', should_unlock)
 
   time.sleep(sleep_time_sec)
+  
+
+
