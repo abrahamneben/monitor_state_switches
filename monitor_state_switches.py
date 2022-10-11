@@ -17,7 +17,7 @@ trusted_mac_addresses_filename = "trusted_mac_addresses.json"
 homebridge_connection_filename = "homebridge_connection.json"
 
 prev_kitchen_lock = None
-kitchen_lock_set_time = datetime.now()
+kitchen_unlock_time = None
 
 homebridge_connection = json.loads(open(homebridge_connection_filename, 'r').read())
 def connect_to_homebridge():
@@ -79,10 +79,13 @@ while True:
 
   ## Update kitchen_lock
 
-  # Calculate how long kitchen lock has been set.
-  if kitchen_lock != prev_kitchen_lock:
-    kitchen_lock_set_time = datetime.now()
-  mins_set = (datetime.now() - kitchen_lock_set_time).total_seconds() / 60.
+  # Calculate how long kitchen lock has been set
+  if kitchen_lock and kitchen_unlock_time is None:
+    kitchen_unlock_time = datetime.now()
+  elif not kitchen_lock:
+    kitchen_unlock_time = None
+
+  mins_unlocked = (datetime.now()-kitchen_unlock_time).total_seconds()/60 if kitchen_unlock_time is not None else None
 
   # During the day, set kitchen_lock to True as long as a trusted device is on the network. If it
   # disconnects, then set kitchen_lock to False after a timeout.
@@ -93,8 +96,8 @@ while True:
   # At night, set we_are_home to False. If it is manually changed outside this script, then 
   # re-set it to false after a timeout.
   elif not is_daytime():  # Nighttime
-    should_unlock = mins_set < idle_timeout_mins if kitchen_lock else False
-    log(f'[kitchen_lock] Nighttime. Setting to {should_unlock} because currently {kitchen_lock} and has been set for {mins_set:.2f} mins.')
+    should_unlock = mins_unlocked < idle_timeout_mins if kitchen_lock else False
+    log(f'[kitchen_lock] Nighttime. Setting to {should_unlock} because currently {kitchen_lock} and has been unlocked for {mins_unlocked:.2f} mins.')
     controller.set_value('kitchen_lock', should_unlock)
 
   time.sleep(sleep_time_sec)
