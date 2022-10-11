@@ -11,7 +11,7 @@ import time
 
 verbose_logging = True
 sleep_time_sec = 15
-idle_timeout_mins = 5
+idle_timeout_mins = 8
 log_filename = 'monitor_state_switches.log'
 trusted_mac_addresses_filename = "trusted_mac_addresses.json"
 homebridge_connection_filename = "homebridge_connection.json"
