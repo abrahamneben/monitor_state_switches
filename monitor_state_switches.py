@@ -10,9 +10,10 @@ import json
 import time
 
 verbose_logging = True
-sleep_time_sec = 15
+sleep_time_sec = 10
 idle_timeout_mins = 8
 log_filename = 'monitor_state_switches.log'
+html_filename = 'index.html'
 trusted_mac_addresses_filename = "trusted_mac_addresses.json"
 homebridge_connection_filename = "homebridge_connection.json"
 
@@ -32,13 +33,43 @@ def connect_to_homebridge():
     time.sleep(sleep_time_sec)
     return connect_to_homebridge()
 
+recent_messages = []
 def log(message):
+
+  date_str = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
+
+  if len(recent_messages) > 10:
+    recent_messages.pop()
+  recent_messages.insert(0, (date_str, message))
+  write_messages_to_html(recent_messages)
+
   with open(log_filename, 'a') as f:
-    date_str = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
     f.write(f'{date_str} : {message}\n')
+
+def write_messages_to_html(messages):
+  with open(html_filename,'w') as f:
+    f.write('''
+<html>
+  <meta content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=no" name="viewport">
+<style>
+</style>
+<body>
+''')
+
+    for m in messages:
+      date_str,message = m
+      f.write(f'<h3>{date_str}</h3><p>{message}</p>\n')
+
+    f.write('''
+</body>
+</html>
+''')
 
 def is_daytime():
   return 7 <= datetime.now().hour < 21
+
+def is_nighttime():
+  return not is_daytime()
 
 # Load trusted MAC addresses
 trusted_devices = json.loads(open(trusted_mac_addresses_filename, 'r').read())
@@ -95,9 +126,10 @@ while True:
 
   # At night, set we_are_home to False. If it is manually changed outside this script, then 
   # re-set it to false after a timeout.
-  elif not is_daytime():  # Nighttime
+  elif is_nighttime():
     should_unlock = mins_unlocked < idle_timeout_mins if kitchen_lock else False
-    log(f'[kitchen_lock] Nighttime. Setting to {should_unlock} because currently {kitchen_lock} and has been unlocked for {mins_unlocked:.2f} mins.')
+    mins_unlocked_str = f'and has been unlocked for {mins_unlocked:.2f} mins' if mins_unlocked is not None else ''
+    log(f'[kitchen_lock] Nighttime. Setting to {should_unlock} because currently {kitchen_lock} {mins_unlocked_str}.')
     controller.set_value('kitchen_lock', should_unlock)
 
   time.sleep(sleep_time_sec)
