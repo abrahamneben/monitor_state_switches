@@ -52,16 +52,28 @@ def write_messages_to_html(messages):
 <html>
   <meta content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=no" name="viewport">
 <style>
+p {margin:0}
+h3 {margin:0px 10px 0px 0px}
 .green {background-color:#BDE7BD}
 .red {background-color:#FFB6B3}
+div{padding:10px; margin: 5px 0px;}
 </style>
 <body>
 ''')
 
     for m in messages:
       date_str,message = m
-      classname = 'green' if 'True' in message else 'red'
-      f.write(f'<div class={classname}>h3>{date_str}</h3><p>{message}</p></div>\n')
+      classname = ''
+      if 'True' in message:
+        classname = 'green'
+      elif 'False' in message:
+        classname = 'red'
+
+      f.write(f'''
+<div class={classname}>
+<h3>{date_str}</h3>
+<p>{message}</p>
+</div>\n''')
 
     f.write('''
 </body>
