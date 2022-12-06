@@ -10,7 +10,7 @@ import json
 import time
 
 verbose_logging = True
-sleep_time_sec = 10
+sleep_time_sec = 15
 idle_timeout_mins = 8
 log_filename = 'monitor_state_switches.log'
 html_filename = 'index.html'
