@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-# monitor_state_switches.py 
-# 
+# monitor_state_switches.py
+#
 
 from subprocess import check_output
 from homebridge import HomeBridgeController
@@ -9,16 +9,15 @@ from datetime import datetime
 import json
 import time
 
-verbose_logging = True
-sleep_time_sec = 15
-idle_timeout_mins = 8
+sleep_time_sec = 10
+idle_timeout_mins = 20
 log_filename = 'monitor_state_switches.log'
 html_filename = 'index.html'
 trusted_mac_addresses_filename = "trusted_mac_addresses.json"
 homebridge_connection_filename = "homebridge_connection.json"
 
-prev_kitchen_lock = None
-kitchen_unlock_time = None
+kitchen_state_change_time = None
+was_unlocked = None
 
 homebridge_connection = json.loads(open(homebridge_connection_filename, 'r').read())
 def connect_to_homebridge():
@@ -38,7 +37,7 @@ def log(message):
 
   date_str = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
 
-  if len(recent_messages) > 10:
+  if len(recent_messages) > 30:
     recent_messages.pop()
   recent_messages.insert(0, (date_str, message))
   write_messages_to_html(recent_messages)
@@ -83,9 +82,6 @@ div{padding:10px; margin: 5px 0px;}
 def is_daytime():
   return 7 <= datetime.now().hour < 21
 
-def is_nighttime():
-  return not is_daytime()
-
 # Load trusted MAC addresses
 trusted_devices = json.loads(open(trusted_mac_addresses_filename, 'r').read())
 
@@ -117,7 +113,7 @@ while True:
   # to devices made outside of this script.)
   controller = connect_to_homebridge()
   we_are_home = bool(controller.get_value('we_are_home'))
-  kitchen_lock = bool(controller.get_value('kitchen_lock'))
+  is_unlocked = bool(controller.get_value('kitchen_lock'))  # In Homebridge, True means unlocked, false means locked
 
   ## Update we_are_home
   log(f'[we_are_home] Setting to {we_are_home}')
@@ -125,29 +121,30 @@ while True:
 
   ## Update kitchen_lock
 
-  # Calculate how long kitchen lock has been set
-  if kitchen_lock and kitchen_unlock_time is None:
-    kitchen_unlock_time = datetime.now()
-  elif not kitchen_lock:
-    kitchen_unlock_time = None
+  if is_unlocked != was_unlocked:
+    kitchen_state_change_time = datetime.now()
 
-  mins_unlocked = (datetime.now()-kitchen_unlock_time).total_seconds()/60 if kitchen_unlock_time is not None else None
+  mins_in_current_state = (datetime.now()-kitchen_state_change_time).total_seconds() / 60
 
-  # During the day, set kitchen_lock to True as long as a trusted device is on the network. If it
-  # disconnects, then set kitchen_lock to False after a timeout.
-  if is_daytime():
-    log(f'[kitchen_lock] Daytime. Setting to {mins_since_trusted_device_seen < idle_timeout_mins}, trusted device last seen for {mins_since_trusted_device_seen:.2f} min ago')
-    controller.set_value('kitchen_lock', mins_since_trusted_device_seen < idle_timeout_mins)
+  sees_trusted_device = mins_since_trusted_device_seen < idle_timeout_mins
+  is_within_timeout = mins_unlocked < idle_timeout_mins
 
-  # At night, set we_are_home to False. If it is manually changed outside this script, then 
-  # re-set it to false after a timeout.
-  elif is_nighttime():
-    should_unlock = mins_unlocked < idle_timeout_mins if kitchen_lock else False
-    mins_unlocked_str = f'and has been unlocked for {mins_unlocked:.2f} mins' if mins_unlocked is not None else ''
-    log(f'[kitchen_lock] Nighttime. Setting to {should_unlock} because currently {kitchen_lock} {mins_unlocked_str}.')
-    controller.set_value('kitchen_lock', should_unlock)
+  should_unlock = \
+    (sees_trusted_device and is_daytime() or \
+    (is_unlocked and mins_in_current_state < idle_timeout_mins))
+
+  state_str = 'Unlocking' if should_unlock else 'Locking'
+  time_str = "Daytime" if is_daytime() else 'Nighttime'
+  log(f"""[{time_str}] {state_str} kitchen.
+Unlocked {mins_unlocked:.1f} min ago.
+Trusted device seen {mins_since_trusted_device_seen:.1f} min ago.
+""")
+  controller.set_value('kitchen_lock', should_unlock)
 
   time.sleep(sleep_time_sec)
-  
+
+
+  was_unlocked = is_unlocked
+
 
 
