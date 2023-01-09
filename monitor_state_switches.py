@@ -10,7 +10,7 @@ import json
 import time
 
 sleep_time_sec = 10
-idle_timeout_mins = 20
+idle_timeout_mins = 1
 log_filename = 'monitor_state_switches.log'
 html_filename = 'index.html'
 trusted_mac_addresses_filename = "trusted_mac_addresses.json"
@@ -127,24 +127,19 @@ while True:
   mins_in_current_state = (datetime.now()-kitchen_state_change_time).total_seconds() / 60
 
   sees_trusted_device = mins_since_trusted_device_seen < idle_timeout_mins
-  is_within_timeout = mins_unlocked < idle_timeout_mins
 
   should_unlock = \
     (sees_trusted_device and is_daytime() or \
     (is_unlocked and mins_in_current_state < idle_timeout_mins))
 
-  state_str = 'Unlocking' if should_unlock else 'Locking'
+  state_str = 'unlocked' if should_unlock else 'locked'
   time_str = "Daytime" if is_daytime() else 'Nighttime'
-  log(f"""[{time_str}] {state_str} kitchen.
-Unlocked {mins_unlocked:.1f} min ago.
-Trusted device seen {mins_since_trusted_device_seen:.1f} min ago.
-""")
+  log(f"""[{time_str}] Kitchen {state_str} for {mins_in_current_state:.1f} min. Trusted device seen {mins_since_trusted_device_seen:.1f} min ago.""")
   controller.set_value('kitchen_lock', should_unlock)
 
   time.sleep(sleep_time_sec)
 
 
   was_unlocked = is_unlocked
-
 
 
