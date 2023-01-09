@@ -10,7 +10,7 @@ import json
 import time
 
 sleep_time_sec = 10
-idle_timeout_mins = 1
+idle_timeout_mins = 15
 log_filename = 'monitor_state_switches.log'
 html_filename = 'index.html'
 trusted_mac_addresses_filename = "trusted_mac_addresses.json"
