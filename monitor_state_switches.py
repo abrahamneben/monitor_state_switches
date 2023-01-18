@@ -37,7 +37,7 @@ def log(message):
 
   date_str = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
 
-  if len(recent_messages) > 30:
+  if len(recent_messages) > 60:
     recent_messages.pop()
   recent_messages.insert(0, (date_str, message))
   write_messages_to_html(recent_messages)
@@ -63,9 +63,9 @@ div{padding:10px; margin: 5px 0px;}
     for m in messages:
       date_str,message = m
       classname = ''
-      if 'True' in message:
+      if ' unlocked' in message:
         classname = 'green'
-      elif 'False' in message:
+      elif ' locked' in message:
         classname = 'red'
 
       f.write(f'''
@@ -116,7 +116,7 @@ while True:
   is_unlocked = bool(controller.get_value('kitchen_lock'))  # In Homebridge, True means unlocked, false means locked
 
   ## Update we_are_home
-  log(f'[we_are_home] Setting to {we_are_home}')
+  #log(f'[we_are_home] Setting to {we_are_home}')
   controller.set_value('we_are_home', mins_since_trusted_device_seen < idle_timeout_mins)
 
   ## Update kitchen_lock
