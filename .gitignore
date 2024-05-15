@@ -1,4 +1,4 @@
-homebridge_config.json
+homebridge_connection.json
 trusted_mac_addresses.json
 *.log
 index.html
