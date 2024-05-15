@@ -10,8 +10,9 @@ import json
 import time
 
 sleep_time_sec = 10
-idle_timeout_mins = 15
+idle_timeout_mins = 1
 log_filename = 'monitor_state_switches.log'
+switch_name = 'sherwood_locker_switch'
 html_filename = 'index.html'
 trusted_mac_addresses_filename = "trusted_mac_addresses.json"
 homebridge_connection_filename = "homebridge_connection.json"
@@ -37,7 +38,7 @@ def log(message):
 
   date_str = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
 
-  if len(recent_messages) > 60:
+  if len(recent_messages) > 2000:
     recent_messages.pop()
   recent_messages.insert(0, (date_str, message))
   write_messages_to_html(recent_messages)
@@ -52,10 +53,10 @@ def write_messages_to_html(messages):
   <meta content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=no" name="viewport">
 <style>
 p {margin:0}
-h3 {margin:0px 10px 0px 0px}
+h3 {margin:0px 5px 0px 0px}
 .green {background-color:#BDE7BD}
 .red {background-color:#FFB6B3}
-div{padding:10px; margin: 5px 0px;}
+div{padding:5px; margin: 5px 0px;}
 </style>
 <body>
 ''')
@@ -80,7 +81,7 @@ div{padding:10px; margin: 5px 0px;}
 ''')
 
 def is_daytime():
-  return 7 <= datetime.now().hour < 21
+    return 7 <= datetime.now().hour < 22
 
 # Load trusted MAC addresses
 trusted_devices = json.loads(open(trusted_mac_addresses_filename, 'r').read())
@@ -112,14 +113,14 @@ while True:
   # (Must reconnect on each loop iteration to pick up state changes
   # to devices made outside of this script.)
   controller = connect_to_homebridge()
-  we_are_home = bool(controller.get_value('we_are_home'))
-  is_unlocked = bool(controller.get_value('kitchen_lock'))  # In Homebridge, True means unlocked, false means locked
+  #we_are_home = bool(controller.get_value('we_are_home'))
+  is_unlocked = bool(controller.get_value(switch_name))  # In Homebridge, True means unlocked, false means locked
 
   ## Update we_are_home
   #log(f'[we_are_home] Setting to {we_are_home}')
-  controller.set_value('we_are_home', mins_since_trusted_device_seen < idle_timeout_mins)
+  #controller.set_value('we_are_home', mins_since_trusted_device_seen < idle_timeout_mins)
 
-  ## Update kitchen_lock
+  ## Update switchk
 
   if is_unlocked != was_unlocked:
     kitchen_state_change_time = datetime.now()
@@ -134,8 +135,8 @@ while True:
 
   state_str = 'unlocked' if should_unlock else 'locked'
   time_str = "Daytime" if is_daytime() else 'Nighttime'
-  log(f"""[{time_str}] Kitchen {state_str} for {mins_in_current_state:.1f} min. Trusted device seen {mins_since_trusted_device_seen:.1f} min ago.""")
-  controller.set_value('kitchen_lock', should_unlock)
+  log(f"""[{time_str}] Switch {state_str} for {mins_in_current_state:.1f} min. Trusted device seen {mins_since_trusted_device_seen:.1f} min ago.""")
+  controller.set_value(switch_name, should_unlock)
 
   time.sleep(sleep_time_sec)
 
