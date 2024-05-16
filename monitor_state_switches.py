@@ -34,17 +34,31 @@ def connect_to_homebridge():
     return connect_to_homebridge()
 
 recent_messages = []
+def get_lock_state_from_message(msg_str):
+  if 'unlocked' in msg_str:
+    return "unlocked"
+  elif "locked" in msg_str:
+    return "locked"
+  return ""
+
 def log(message):
 
   date_str = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
+  
+  # write to debug log
+  with open(log_filename, 'a') as f:
+    f.write(f'{date_str} : {message}\n')
+  
+  if len(recent_messages) > 0 and get_lock_state_from_message(message) == get_lock_state_from_message(recent_messages[0][1]):
+    recent_messages[0] = (date_str, message)
+  else:
+    recent_messages.insert(0, (date_str, message))
 
   if len(recent_messages) > 2000:
     recent_messages.pop()
-  recent_messages.insert(0, (date_str, message))
+  
   write_messages_to_html(recent_messages)
 
-  with open(log_filename, 'a') as f:
-    f.write(f'{date_str} : {message}\n')
 
 def write_messages_to_html(messages):
   with open(html_filename,'w') as f:
