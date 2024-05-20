@@ -3,3 +3,4 @@ trusted_mac_addresses.json
 *.log
 index.html
 nohup.out
+logs/*

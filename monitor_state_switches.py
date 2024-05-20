@@ -5,20 +5,35 @@
 
 from subprocess import check_output
 from homebridge import HomeBridgeController
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import time
 
 sleep_time_sec = 10
-idle_timeout_mins = 1
-log_filename = 'monitor_state_switches.log'
+idle_timeout = timedelta(minutes=5)
+log_filename = 'logs/monitor_state_switches.log'
 switch_name = 'sherwood_locker_switch'
-html_filename = 'index.html'
+html_filename = 'logs/index.html'
 trusted_mac_addresses_filename = "trusted_mac_addresses.json"
 homebridge_connection_filename = "homebridge_connection.json"
 
 kitchen_state_change_time = None
 was_unlocked = None
+
+def time_delta_to_str(td):
+  secs = td.total_seconds()
+  mins = secs / 60
+  hours = mins / 60
+  days = hours / 24
+
+  if days > 1:
+    return f'{int(days)} days'
+  elif hours > 1:
+    return f'{int(hours)} hours'
+  elif mins > 1:
+    return f'{int(mins)} mins'
+  else:
+    return f'{int(secs)} secs'
 
 homebridge_connection = json.loads(open(homebridge_connection_filename, 'r').read())
 def connect_to_homebridge():
@@ -102,11 +117,17 @@ trusted_devices = json.loads(open(trusted_mac_addresses_filename, 'r').read())
 
 # Initialize dictionary of when trusted MAC addresses were last
 # seen on the network.
-last_seen_times = {mac_addr: datetime(1970,1,1,1,1,1) for mac_addr in trusted_devices.keys()}
+last_seen_times = {mac_addr: datetime(2024,1,1,1,1,1) for mac_addr in trusted_devices.keys()}
 
 log('Beginning monitoring')
 
+first_run = True
 while True:
+  
+  if not first_run:
+    state_str = 'unlocked' if is_unlocked else 'locked'
+    time_str = "Daytime" if is_daytime() else 'Nighttime'
+    log(f"[{time_str}] Switch {state_str} for {time_delta_to_str(time_in_current_state)}. Trusted device seen {time_delta_to_str(time_since_trusted_device_seen)} ago.")
 
   # Load all connected MAC addresses
   cmd = "sudo arp-scan --plain --interface=eth0 --localnet | awk 'BEGIN {FS=\"\t\"}; {print $2}'"
@@ -119,42 +140,30 @@ while True:
       last_seen_times[mac_addr] = datetime.now()
 
   # Calculate when any trusted device was last seen
-  mins_since_trusted_device_seen = min(
-    (datetime.now()-t).total_seconds() / 60.
-     for t in last_seen_times.values())
+  time_since_trusted_device_seen = min(
+    (datetime.now()-t) for t in last_seen_times.values())
 
   # Connect to homebridge instance.
   # (Must reconnect on each loop iteration to pick up state changes
   # to devices made outside of this script.)
   controller = connect_to_homebridge()
-  #we_are_home = bool(controller.get_value('we_are_home'))
   is_unlocked = bool(controller.get_value(switch_name))  # In Homebridge, True means unlocked, false means locked
 
-  ## Update we_are_home
-  #log(f'[we_are_home] Setting to {we_are_home}')
-  #controller.set_value('we_are_home', mins_since_trusted_device_seen < idle_timeout_mins)
-
-  ## Update switchk
-
+  ## Update switch
   if is_unlocked != was_unlocked:
     kitchen_state_change_time = datetime.now()
 
-  mins_in_current_state = (datetime.now()-kitchen_state_change_time).total_seconds() / 60
-
-  sees_trusted_device = mins_since_trusted_device_seen < idle_timeout_mins
+  time_in_current_state = (datetime.now()-kitchen_state_change_time)
+  sees_trusted_device = time_since_trusted_device_seen < idle_timeout
 
   should_unlock = \
     (sees_trusted_device and is_daytime() or \
-    (is_unlocked and mins_in_current_state < idle_timeout_mins))
-
-  state_str = 'unlocked' if should_unlock else 'locked'
-  time_str = "Daytime" if is_daytime() else 'Nighttime'
-  log(f"""[{time_str}] Switch {state_str} for {mins_in_current_state:.1f} min. Trusted device seen {mins_since_trusted_device_seen:.1f} min ago.""")
+    (is_unlocked and time_in_current_state < idle_timeout))
+  
   controller.set_value(switch_name, should_unlock)
 
   time.sleep(sleep_time_sec)
 
-
   was_unlocked = is_unlocked
 
-
+  first_run = False
