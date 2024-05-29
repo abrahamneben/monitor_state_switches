@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import json
 import time
 
-sleep_time_sec = 10
+sleep_time_sec = 5
 idle_timeout = timedelta(minutes=5)
 log_filename = 'logs/monitor_state_switches.log'
 switch_name = 'sherwood_locker_switch'
@@ -27,13 +27,13 @@ def time_delta_to_str(td):
   days = hours / 24
 
   if days > 1:
-    return f'{int(days)} days'
+    return f'{days:.1f} days'
   elif hours > 1:
-    return f'{int(hours)} hours'
+    return f'{hours:.1f} hours'
   elif mins > 1:
-    return f'{int(mins)} mins'
+    return f'{mins:.1f} mins'
   else:
-    return f'{int(secs)} secs'
+    return f'{secs:.1f} secs'
 
 homebridge_connection = json.loads(open(homebridge_connection_filename, 'r').read())
 def connect_to_homebridge():
@@ -50,9 +50,9 @@ def connect_to_homebridge():
 
 recent_messages = []
 def get_lock_state_from_message(msg_str):
-  if 'unlocked' in msg_str:
+  if 'unlock' in msg_str.lower():
     return "unlocked"
-  elif "locked" in msg_str:
+  elif "lock" in msg_str.lower():
     return "locked"
   return ""
 
@@ -69,7 +69,7 @@ def log(message):
   else:
     recent_messages.insert(0, (date_str, message))
 
-  if len(recent_messages) > 2000:
+  if len(recent_messages) > 200:
     recent_messages.pop()
   
   write_messages_to_html(recent_messages)
@@ -93,9 +93,9 @@ div{padding:5px; margin: 5px 0px;}
     for m in messages:
       date_str,message = m
       classname = ''
-      if ' unlocked' in message:
+      if 'unlock' in message.lower():
         classname = 'green'
-      elif ' locked' in message:
+      elif 'lock' in message.lower():
         classname = 'red'
 
       f.write(f'''
@@ -110,7 +110,12 @@ div{padding:5px; margin: 5px 0px;}
 ''')
 
 def is_daytime():
-    return 7 <= datetime.now().hour < 22
+  return 7 <= datetime.now().hour < 22
+
+def log_wrapper(unlocked, daytime, time_since_trusted_device_seen):
+  state_str = 'Unlocking' if unlocked else 'Locking'
+  time_str = "Daytime" if daytime else 'Nighttime'
+  log(f"[{time_str}] {state_str}. Trusted device seen {time_delta_to_str(time_since_trusted_device_seen)} ago.")
 
 # Load trusted MAC addresses
 trusted_devices = json.loads(open(trusted_mac_addresses_filename, 'r').read())
@@ -124,11 +129,6 @@ log('Beginning monitoring')
 first_run = True
 while True:
   
-  if not first_run:
-    state_str = 'unlocked' if is_unlocked else 'locked'
-    time_str = "Daytime" if is_daytime() else 'Nighttime'
-    log(f"[{time_str}] Switch {state_str} for {time_delta_to_str(time_in_current_state)}. Trusted device seen {time_delta_to_str(time_since_trusted_device_seen)} ago.")
-
   # Load all connected MAC addresses
   cmd = "sudo arp-scan --plain --interface=eth0 --localnet | awk 'BEGIN {FS=\"\t\"}; {print $2}'"
   cmd_output = check_output(cmd, shell=True).decode()
@@ -160,6 +160,8 @@ while True:
     (sees_trusted_device and is_daytime() or \
     (is_unlocked and time_in_current_state < idle_timeout))
   
+  if should_unlock != is_unlocked:
+    log_wrapper(should_unlock, is_daytime(), time_since_trusted_device_seen)
   controller.set_value(switch_name, should_unlock)
 
   time.sleep(sleep_time_sec)
