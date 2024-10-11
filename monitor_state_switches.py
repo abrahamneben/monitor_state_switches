@@ -158,7 +158,7 @@ while True:
     (is_unlocked and time_in_current_state < idle_timeout))
 
   should_unlock_str = 'Unlocking' if should_unlock else 'Locking'
-  log(f'{should_unlock_str} Trusted device seen {time_delta_to_str(time_since_trusted_device_seen)} ago, idle timeout {time_delta_to_str(idle_timeout)}. is_unlocked = {is_unlocked}, time_in_current_state {time_delta_to_str(time_in_current_state)}')
+  log(f'[{should_unlock_str}] Trusted device seen {time_delta_to_str(time_since_trusted_device_seen)} ago, idle timeout {time_delta_to_str(idle_timeout)}. time_in_current_state {time_delta_to_str(time_in_current_state)}')
   controller.set_value(switch_name, should_unlock)
 
   time.sleep(sleep_time_sec)
