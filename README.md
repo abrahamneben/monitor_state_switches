@@ -51,10 +51,11 @@ Create a `homebridge_connection.json` file from the provided template `homebridg
 
 Create a `trusted_mac_addresses.json` file from the provided template `trusted_mac_addresses_TEMPLATE.json`, containing the Wi-Fi MAC addresses of your trusted devices. I used my and my partner's iphones. These days, iOS creates a unique, random MAC address for every Wi-Fi network. This is found by tapping Wi-Fi in Settings, then tapping the (i) next to the current network.
 
-Then simply run the script!
+Then set the script to run at startup with cron. Run `crontab -e` and add these lines
+
 ```
-cd we_are_home
-source run_monitoring.sh
+@reboot nohup python -m http.server --directory /home/aneben/monitor_state_switches/logs &
+@reboot nohup /home/aneben/monitor_state_switches/monitor_state_switches.py >/home/aneben/monitor_state_switches/logs/log.txt 2>&1 &
 ```
 
 
